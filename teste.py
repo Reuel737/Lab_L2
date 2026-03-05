@@ -25,16 +25,8 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# -----------------------------
-# 2️⃣ Normalização
-# -----------------------------
-
 normalizer = layers.Normalization()
-normalizer.adapt(X_train)  # ⚠️ só no treino
-
-# -----------------------------
-# 3️⃣ Construção do Modelo
-# -----------------------------
+normalizer.adapt(X_train)  # no treino
 
 modelo = keras.Sequential([
     normalizer,
@@ -50,9 +42,7 @@ modelo.compile(
     metrics=["mae"]
 )
 
-# -----------------------------
-# 4️⃣ Callbacks
-# -----------------------------
+# Callbacks
 
 checkpoint = keras.callbacks.ModelCheckpoint(
     filepath="melhor_modelo.keras",
@@ -78,10 +68,6 @@ backup = keras.callbacks.BackupAndRestore(
     backup_dir="./backup_treino"
 )
 
-# -----------------------------
-# 5️⃣ Treinamento
-# -----------------------------
-
 history = modelo.fit(
     X_train,
     y_train,
@@ -91,10 +77,6 @@ history = modelo.fit(
     callbacks=[checkpoint, early_stop, reduce_lr, backup],
     verbose=1
 )
-
-# -----------------------------
-# 6️⃣ Avaliação final
-# -----------------------------
 
 loss, mae = modelo.evaluate(X_test, y_test)
 print("Loss (MSE):", loss)
