@@ -34,12 +34,12 @@ dataframes_finais = {}
 for nome_regiao, lista_dfs in regioes.items():
     dataframes_finais[nome_regiao] = pd.concat(lista_dfs, ignore_index=True)
 
-df_head = dataframes_finais[nome_regiao]
+# df_head = dataframes_finais[nome_regiao]
 
-for nome, df in dataframes_finais.items():
-    print(nome, df_head.head())
-    print(df_head.shape)
-    df.to_csv(f"csv_regioes/{nome}.csv", index=False)
+# for nome, df in dataframes_finais.items():
+#     print(nome, df_head.head())
+#     print(df_head.shape)
+#     df.to_csv(f"csv_regioes/{nome}.csv", index=False)
 
 # df_head = dataframes_finais["transform-fp-head_cellcenter"]
 # print(df_head.head())
