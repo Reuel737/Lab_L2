@@ -16,7 +16,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--Layers", default="10 10", help='maximum depth')
-parser.add_argument("--DataFile", default='Cabine16384.pandas', type=str, help='maximum depth')
+parser.add_argument("--DataFile", default='dados_filtrados/pandas_regioes/transform-fp-head_cellcenter.pandas', type=str, help='maximum depth')
 parser.add_argument("--FileOutPut", default="untitle", type=str, help='maximum depth')
 parser.add_argument("--MaxIter", default=1000, type=int, help='maximum depth')
 parser.add_argument("--BatchSize", default=500, type=int, help='maximum depth')
@@ -35,8 +35,11 @@ log_dir   = parser.parse_args().LogDir
 plot      = parser.parse_args().Plot
 
 Dados = pd.read_pickle(DataFile)
-Vars = ['x','y','z','Vel','Tinsu','Qinsu']
-Target = ['u','v','w','p','t']
+#Vars = ['x','y','z','Vel','Tinsu','Qinsu']
+#Target = ['u','v','w','p','t']
+Vars = ['x-coordinate','y-coordinate','z-coordinate','Vel','Tinsu','Qinsu']
+Target = ['pressure','x-velocity','y-velocity','z-velocity','temperature','incident-radiation','radiation-temperature','rad-heat-flux','vr']
+
 xtrain,xval,ytrain,yval = train_test_split(Dados[Vars].to_numpy(),Dados[Target].to_numpy(),test_size=0.1)
 
 np.savez(filename+'dataset.npz',xtrain,xval,ytrain,yval)
@@ -72,9 +75,9 @@ noutput = len(Target)
 actoutput = 'linear'
 
 
-
-#reg = L2( 0.00005 )
 reg=None
+#reg = L2( 0.00005 )
+
 #hiddenlayers  = [ Input(shape=[ninput])]
 hiddenlayers  = [ normaliza]
 hiddenlayers += [ Dense(neurons, activation=act,kernel_regularizer=reg) for neurons,act in zip(layers,activation)]
