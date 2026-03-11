@@ -269,3 +269,75 @@ for i,t in enumerate(Target):
     if plot: plt.show()
     plt.clf()
 
+# RESUMO DO EXPERIMENTO
+
+val_loss_final   = history.history['val_loss'][-1]
+train_loss_final = history.history['loss'][-1]
+melhor_epoca     = int(np.argmin(history.history['val_loss'])) + 1
+total_epocas     = len(history.history['loss'])
+
+print("\n")
+print("=" * 52)
+print("  RESUMO DO EXPERIMENTO")
+print("=" * 52)
+print(f"  Experimento   : {filename}")
+print(f"  Layers        : {Layers}")
+print(f"  MaxIter       : {maxiter}  |  BatchSize: {BatchSize}")
+print("-" * 52)
+print(f"  train_loss_final : {train_loss_final:.6f}")
+print(f"  val_loss_final   : {val_loss_final:.6f}")
+print(f"  melhor_epoca     : {melhor_epoca} / {total_epocas}")
+print("=" * 52)
+print()
+
+# GRÁFICOS DE TREINAMENTO
+
+import os
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+graficos_dir = "graficos"
+os.makedirs(graficos_dir, exist_ok=True)
+
+exp_tag = os.path.basename(filename)
+epocas  = list(range(1, total_epocas + 1))
+
+loss_values     = history.history['loss']
+val_loss_values = history.history['val_loss']
+lr_values       = history.history['learning_rate']
+
+# Loss curve interativa
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=epocas, y=loss_values,     mode='lines', name='Train Loss',
+    line=dict(color='steelblue', width=1.5)))
+fig.add_trace(go.Scatter(x=epocas, y=val_loss_values, mode='lines', name='Validation Loss',
+    line=dict(color='tomato', width=1.5)))
+fig.add_vline(x=melhor_epoca, line_dash='dash', line_color='gray',
+    annotation_text=f'Melhor época ({melhor_epoca})', annotation_position='top right')
+fig.update_layout(
+    title=dict(text=f'Loss Curve — {exp_tag}<br><sup>Layers: {Layers}</sup>', font_size=16),
+    xaxis_title='Época',
+    yaxis_title='MSE Loss',
+    yaxis_type='log',
+    hovermode='x unified',
+    template='plotly_white',
+    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+    width=1000, height=520
+)
+fig.write_html(os.path.join(graficos_dir, exp_tag + '-loss_curve.html'))
+
+# Learning rate interativa
+fig_lr = go.Figure()
+fig_lr.add_trace(go.Scatter(x=epocas, y=lr_values, mode='lines', name='Learning Rate',
+    line=dict(color='darkorange', width=2)))
+fig_lr.update_layout(
+    title=dict(text=f'Learning Rate — {exp_tag}<br><sup>Layers: {Layers}</sup>', font_size=16),
+    xaxis_title='Época',
+    yaxis_title='Learning Rate',
+    hovermode='x unified',
+    template='plotly_white',
+    width=1000, height=420
+)
+fig_lr.write_html(os.path.join(graficos_dir, exp_tag + '-learning_rate.html'))
+
+print(f"  Gráficos salvos em: {graficos_dir}/")
