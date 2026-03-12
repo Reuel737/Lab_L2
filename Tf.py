@@ -28,6 +28,8 @@ parser.add_argument("--Plot", action='store_true', help='Enable plot mode (defau
 Layers    = [int(x) for x in str.split(parser.parse_args().Layers,' ')]
 DataFile  = parser.parse_args().DataFile
 filename  = parser.parse_args().FileOutPut
+import os
+os.makedirs(os.path.dirname(filename) or '.', exist_ok=True)
 maxiter   = parser.parse_args().MaxIter
 BatchSize = parser.parse_args().BatchSize
 acum = parser.parse_args().Acum
@@ -194,6 +196,9 @@ callbk = [tensorboard_callback,
           ]
 
 
+import time
+t_inicio = time.time()
+
 history = model.fit( #normaliza(Dados[Vars].to_numpy()),
     xtrain,
     ytrain,
@@ -203,6 +208,8 @@ history = model.fit( #normaliza(Dados[Vars].to_numpy()),
     callbacks = callbk,
     validation_data=(xval,yval)
 )
+
+tempo_treino_min = round((time.time() - t_inicio) / 60, 2)
 
 model.save(filename+'.keras')
 
@@ -287,57 +294,28 @@ print("-" * 52)
 print(f"  train_loss_final : {train_loss_final:.6f}")
 print(f"  val_loss_final   : {val_loss_final:.6f}")
 print(f"  melhor_epoca     : {melhor_epoca} / {total_epocas}")
+print(f"  tempo_treino     : {tempo_treino_min} min")
 print("=" * 52)
 print()
 
-# GRÁFICOS DE TREINAMENTO
-
-import os
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-
-graficos_dir = "graficos"
-os.makedirs(graficos_dir, exist_ok=True)
-
-exp_tag = os.path.basename(filename)
-epocas  = list(range(1, total_epocas + 1))
-
-loss_values     = history.history['loss']
-val_loss_values = history.history['val_loss']
-lr_values       = history.history['learning_rate']
-
-# Loss curve interativa
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=epocas, y=loss_values,     mode='lines', name='Train Loss',
-    line=dict(color='steelblue', width=1.5)))
-fig.add_trace(go.Scatter(x=epocas, y=val_loss_values, mode='lines', name='Validation Loss',
-    line=dict(color='tomato', width=1.5)))
-fig.add_vline(x=melhor_epoca, line_dash='dash', line_color='gray',
-    annotation_text=f'Melhor época ({melhor_epoca})', annotation_position='top right')
-fig.update_layout(
-    title=dict(text=f'Loss Curve — {exp_tag}<br><sup>Layers: {Layers}</sup>', font_size=16),
-    xaxis_title='Época',
-    yaxis_title='MSE Loss',
-    yaxis_type='log',
-    hovermode='x unified',
-    template='plotly_white',
-    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
-    width=1000, height=520
-)
-fig.write_html(os.path.join(graficos_dir, exp_tag + '-loss_curve.html'))
-
-# Learning rate interativa
-fig_lr = go.Figure()
-fig_lr.add_trace(go.Scatter(x=epocas, y=lr_values, mode='lines', name='Learning Rate',
-    line=dict(color='darkorange', width=2)))
-fig_lr.update_layout(
-    title=dict(text=f'Learning Rate — {exp_tag}<br><sup>Layers: {Layers}</sup>', font_size=16),
-    xaxis_title='Época',
-    yaxis_title='Learning Rate',
-    hovermode='x unified',
-    template='plotly_white',
-    width=1000, height=420
-)
-fig_lr.write_html(os.path.join(graficos_dir, exp_tag + '-learning_rate.html'))
-
-print(f"  Gráficos salvos em: {graficos_dir}/")
+# Salvar resumo em CSV acumulativo
+import csv, datetime
+hist_csv = "hist_exp.csv"
+hist_exists = os.path.isfile(hist_csv)
+with open(hist_csv, 'a', newline='') as f:
+    writer = csv.writer(f)
+    if not hist_exists:
+        writer.writerow(["timestamp","experimento","layers","maxiter","batchsize","train_loss_final","val_loss_final","melhor_epoca","total_epocas","tempo_treino_min"])
+    writer.writerow([
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        os.path.basename(filename),
+        str(Layers),
+        maxiter,
+        BatchSize,
+        round(train_loss_final, 6),
+        round(val_loss_final, 6),
+        melhor_epoca,
+        total_epocas,
+        tempo_treino_min
+    ])
+print(f"  Resumo salvo em: {hist_csv}")

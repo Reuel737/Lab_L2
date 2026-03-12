@@ -38,15 +38,15 @@ run_exp() {
 
 # EXPERIMENTOS
 
-run_exp "exp01" "64 64"
-run_exp "exp02" "64 64 64"
-run_exp "exp03" "64 64 64 64"
-run_exp "exp04" "64 64 64 64 64"
+# run_exp "exp01" "64 64"
+# run_exp "exp02" "64 64 64"
+# run_exp "exp03" "64 64 64 64"
+# run_exp "exp04" "64 64 64 64 64"
 
-run_exp "exp05" "128 128"
-run_exp "exp06" "128 128 128"
-run_exp "exp07" "128 128 128 128"
-run_exp "exp08" "128 128 128 128 128"
+# run_exp "exp05" "128 128"
+# run_exp "exp06" "128 128 128"
+# run_exp "exp07" "128 128 128 128"
+# run_exp "exp08" "128 128 128 128 128"
 
 run_exp "exp09" "256 256"
 run_exp "exp10" "256 256 256"
