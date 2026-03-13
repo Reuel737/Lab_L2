@@ -5,7 +5,7 @@ MAXITER=5000
 BATCHSIZE=500
 RESULTS_DIR="result_fase2"
 LOGS_DIR="logs/fase2"
-HISTCSV="hist_exp_fase2.csv"
+HISTCSV="historico/hist_exp_fase2.csv"
 
 mkdir -p "$RESULTS_DIR"
 mkdir -p "$LOGS_DIR"

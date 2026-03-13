@@ -3,7 +3,7 @@
 DATAFILE="dados_filtrados/pandas_regioes/transform-fp-head_cellcenter.pandas"
 MAXITER=1000
 BATCHSIZE=500
-RESULTS_DIR="resultados"
+RESULTS_DIR="result_fase1"
 LOGS_DIR="logs/fit"
 
 mkdir -p "$RESULTS_DIR"
