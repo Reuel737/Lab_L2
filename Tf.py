@@ -7,13 +7,13 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.metrics import mse
 from sklearn.model_selection import train_test_split
 import numpy as np
-
-
+ 
+ 
 import datetime
 log_dir_def = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-
+ 
 import argparse
-
+ 
 parser = argparse.ArgumentParser()
 parser.add_argument("--Layers", default="10 10", help='maximum depth')
 parser.add_argument("--DataFile", default='dados_filtrados/pandas_regioes/transform-fp-head_cellcenter.pandas', type=str, help='maximum depth')
@@ -22,9 +22,10 @@ parser.add_argument("--MaxIter", default=1000, type=int, help='maximum depth')
 parser.add_argument("--BatchSize", default=500, type=int, help='maximum depth')
 parser.add_argument("--Acum", default=None, type=int, help='maximum depth')
 parser.add_argument("--LogDir", default=log_dir_def, type=str, help='maximum depth')
+parser.add_argument("--HistCSV", default="hist_exp.csv", type=str, help='CSV file to save experiment summary')
 parser.add_argument("--Plot", action='store_true', help='Enable plot mode (default: False)')
-
-
+ 
+ 
 Layers    = [int(x) for x in str.split(parser.parse_args().Layers,' ')]
 DataFile  = parser.parse_args().DataFile
 filename  = parser.parse_args().FileOutPut
@@ -34,27 +35,28 @@ maxiter   = parser.parse_args().MaxIter
 BatchSize = parser.parse_args().BatchSize
 acum = parser.parse_args().Acum
 log_dir   = parser.parse_args().LogDir
+hist_csv  = parser.parse_args().HistCSV
 plot      = parser.parse_args().Plot
-
+ 
 Dados = pd.read_pickle(DataFile)
 #Vars = ['x','y','z','Vel','Tinsu','Qinsu']
 #Target = ['u','v','w','p','t']
 Vars = ['x-coordinate','y-coordinate','z-coordinate','Vel','Tinsu','Qinsu']
 Target = ['pressure','x-velocity','y-velocity','z-velocity','temperature','incident-radiation','radiation-temperature','rad-heat-flux','vr']
-
+ 
 xtrain,xval,ytrain,yval = train_test_split(Dados[Vars].to_numpy(),Dados[Target].to_numpy(),test_size=0.1)
-
+ 
 np.savez(filename+'dataset.npz',xtrain,xval,ytrain,yval)
-
+ 
 # TensorBoard progress Monitor
 from tensorflow.keras.callbacks import TensorBoard
-
+ 
 #if log_dir != log_dir_def:
 #    import os
 #    os.makedirs(log_dir, exist_ok=True)
-
+ 
 print('Log folder '+log_dir)
-
+ 
 # Set up TensorBoard callback
 tensorboard_callback = TensorBoard(log_dir=log_dir,
                          histogram_freq=30,
@@ -65,28 +67,28 @@ tensorboard_callback = TensorBoard(log_dir=log_dir,
                          embeddings_freq=100,
 #                         embeddings_metadata=None
                                    )
-
+ 
 ninput = len(Vars)
-
+ 
 normaliza = Normalization(axis=-1)
 normaliza.adapt( Dados[Vars].to_numpy())
-
+ 
 layers=Layers
 activation=len(layers) * ['relu']
 noutput = len(Target)
 actoutput = 'linear'
-
-
+ 
+ 
 reg=None
 #reg = L2( 0.00005 )
-
+ 
 #hiddenlayers  = [ Input(shape=[ninput])]
 hiddenlayers  = [ normaliza]
 hiddenlayers += [ Dense(neurons, activation=act,kernel_regularizer=reg) for neurons,act in zip(layers,activation)]
 hiddenlayers += [ Dense(noutput, activation=actoutput,kernel_regularizer=reg) ]
-
+ 
 model = Sequential(hiddenlayers)
-
+ 
 early_stopping = EarlyStopping(
     monitor='loss',
     patience=200,
@@ -95,7 +97,7 @@ early_stopping = EarlyStopping(
     verbose=1,
     restore_best_weights=True
 )
-
+ 
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 #initial_learning_rate = 0.001
 #lr_schedule = ExponentialDecay(
@@ -103,7 +105,7 @@ from tensorflow.keras.optimizers.schedules import ExponentialDecay
 #    decay_steps=10000,
 #    decay_rate=0.96,
 #    staircase=True)
-
+ 
 # Pass the schedule to the optimizer
 #from tensorflow.keras.optimizers import SGD
 ##optimizer = SGD(learning_rate=lr_schedule)
@@ -113,7 +115,7 @@ from tensorflow.keras.optimizers.schedules import ExponentialDecay
 #    momentum=0.9, 
 #    nesterov=True # often works slightly better than standard momentum
 #)
-
+ 
 #from tensorflow.keras.optimizers import Adadelta
 #optimizer =Adadelta(
 #    learning_rate=0.001,
@@ -130,7 +132,7 @@ from tensorflow.keras.optimizers.schedules import ExponentialDecay
 #    gradient_accumulation_steps=None,
 #    name='adadelta',
 #)
-
+ 
 #from tensorflow.keras.optimizers import Adagrad
 #optimizer = Adagrad(
 #    learning_rate=0.001,
@@ -147,7 +149,7 @@ from tensorflow.keras.optimizers.schedules import ExponentialDecay
 #    gradient_accumulation_steps=None,
 #    name='adagrad',
 #)
-
+ 
 from tensorflow.keras.optimizers import Adam
 optimizer = Adam(
     learning_rate=0.001,
@@ -166,7 +168,7 @@ optimizer = Adam(
     gradient_accumulation_steps=acum,
     name='adam',
 )
-
+ 
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 reduce_lr = ReduceLROnPlateau(
     monitor='val_loss',  # Metric to monitor (e.g., validation loss)
@@ -178,7 +180,7 @@ reduce_lr = ReduceLROnPlateau(
     cooldown = 20,
     min_lr=1e-5          # Lower bound on the learning rate
 )
-
+ 
 model.compile(
     optimizer = optimizer,
     #optimizer='adam',
@@ -189,16 +191,13 @@ model.compile(
     loss='mean_squared_error',  # Standard loss for regression
     metrics=['mean_absolute_error'] # Additional metrics for evaluation
 )
-
+ 
 callbk = [tensorboard_callback,
           reduce_lr,
-          #early_stopping,
+          early_stopping,
           ]
-
-
-import time
-t_inicio = time.time()
-
+ 
+ 
 history = model.fit( #normaliza(Dados[Vars].to_numpy()),
     xtrain,
     ytrain,
@@ -208,41 +207,39 @@ history = model.fit( #normaliza(Dados[Vars].to_numpy()),
     callbacks = callbk,
     validation_data=(xval,yval)
 )
-
-tempo_treino_min = round((time.time() - t_inicio) / 60, 2)
-
+ 
 model.save(filename+'.keras')
-
+ 
 ylims = [(minimo,maximo) for minimo,maximo in zip( Dados[Target].min(axis=0),Dados[Target].max(axis=0) )]
-
+ 
 #Pred = model(normaliza(Dados[Vars].to_numpy()))
-
+ 
 Predt = model(xtrain[0:BatchSize,:]).numpy()
 c = BatchSize
 while c+BatchSize < len(xtrain):
     Predt = np.row_stack((Predt,model(xtrain[c:c+BatchSize,:]).numpy()))
     c += BatchSize
-
+ 
 Predt = np.row_stack((Predt,model(xtrain[c:,:]).numpy()))
-
+ 
 Predv = model(xval[0:BatchSize,:]).numpy()
 c = BatchSize
 while c+BatchSize < len(xval):
     Predv = np.row_stack((Predv,model(xval[c:c+BatchSize,:]).numpy()))
     c += BatchSize
-
+ 
 Predv = np.row_stack((Predv,model(xval[c:,:]).numpy()))
-
+ 
 from sklearn.linear_model import LinearRegression
 LinRegErro = []
 for i,t in enumerate(Target): LinRegErro.append(LinearRegression().fit(yval[:,i].reshape(-1,1),Predv[:,i].reshape(-1,1)))
-
+ 
 print('Mean Squared Error: train ', mse(ytrain, Predt),' - validation ',mse(yval, Predv))
-
+ 
 #import matplotlib
 #matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
-
+ 
 #fig, axs = plt.subplots(len(Targets),1)
 for i,t in enumerate(Target):
     plt.clf()
@@ -258,10 +255,10 @@ for i,t in enumerate(Target):
     plt.grid('on')
     plt.savefig(filename+'-'+t+'-erro.eps')
     if plot: plt.show()
-
+ 
 errot = np.abs(ytrain - Predt)
 errov = np.abs(yval - Predv)
-
+ 
 for i,t in enumerate(Target):
     plt.clf()
     plt.hist(errot[:,i], bins=30, color='skyblue', edgecolor='black')
@@ -275,14 +272,14 @@ for i,t in enumerate(Target):
     plt.savefig(filename+'-'+t+'-hist.eps')
     if plot: plt.show()
     plt.clf()
-
+ 
 # RESUMO DO EXPERIMENTO
-
+ 
 val_loss_final   = history.history['val_loss'][-1]
 train_loss_final = history.history['loss'][-1]
 melhor_epoca     = int(np.argmin(history.history['val_loss'])) + 1
 total_epocas     = len(history.history['loss'])
-
+ 
 print("\n")
 print("=" * 52)
 print("  RESUMO DO EXPERIMENTO")
@@ -294,18 +291,16 @@ print("-" * 52)
 print(f"  train_loss_final : {train_loss_final:.6f}")
 print(f"  val_loss_final   : {val_loss_final:.6f}")
 print(f"  melhor_epoca     : {melhor_epoca} / {total_epocas}")
-print(f"  tempo_treino     : {tempo_treino_min} min")
 print("=" * 52)
 print()
-
+ 
 # Salvar resumo em CSV acumulativo
 import csv, datetime
-hist_csv = "hist_exp.csv"
 hist_exists = os.path.isfile(hist_csv)
 with open(hist_csv, 'a', newline='') as f:
     writer = csv.writer(f)
     if not hist_exists:
-        writer.writerow(["timestamp","experimento","layers","maxiter","batchsize","train_loss_final","val_loss_final","melhor_epoca","total_epocas","tempo_treino_min"])
+        writer.writerow(["timestamp","experimento","layers","maxiter","batchsize","train_loss_final","val_loss_final","melhor_epoca","total_epocas"])
     writer.writerow([
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         os.path.basename(filename),
@@ -315,7 +310,6 @@ with open(hist_csv, 'a', newline='') as f:
         round(train_loss_final, 6),
         round(val_loss_final, 6),
         melhor_epoca,
-        total_epocas,
-        tempo_treino_min
+        total_epocas
     ])
 print(f"  Resumo salvo em: {hist_csv}")
